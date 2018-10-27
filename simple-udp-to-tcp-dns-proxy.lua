@@ -62,6 +62,8 @@ end
 
 Обе функции сразу после запуска выполняют coroutine.yield(). Это позволяет первым вызовом передать параметры функции а дальше делать coroutine.resume(co) без дополнительных параметров.
 
+main
+
 А теперь main функция которая выполнит подготовку и запустит главный цикл.
 
 --]]--
@@ -102,6 +104,8 @@ function main()
             local ok, err = coroutine.resume(coroutines[in_socket])
             if not ok then
                 -- если сопрограмма завершилась с ошибкой то
+                udp_dns_socket:close() -- закрываем UDP порт
+                tcp_dns_socket:close() -- закрываем TCP соединение
                 print(err) -- выводим ошибку
                 return     -- завершаем главный цикл
             end
