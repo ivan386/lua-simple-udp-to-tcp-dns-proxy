@@ -33,7 +33,10 @@ function udp_to_tcp_coroutine_function(udp_in, tcp_out, clients)
             -- 2 - 2 bytes size
             tcp_out:send(((">I2"):pack(#packet))..packet) -- добавляем размер пакета и отправляем в TCP
             local id = (">I2"):unpack(packet:sub(1,2))    -- читаем ID пакета
-            clients[id] = {ip=err_ip, port=port}          -- записываем адрес отправителя
+			if not clients[id] then
+				clients[id] = {}
+			end
+			table.insert(clients[id] ,{ip=err_ip, port=port, packet=packet}) -- записываем адрес отправителя
             print(os.date("%c", os.time()) ,err_ip, port, ">", serialize(packet)) -- отображаем пакет в консоль
         end
     until false
@@ -48,11 +51,20 @@ function tcp_to_udp_coroutine_function(tcp_in, udp_out, clients)
         -- 2 - 2 bytes size
         local packet = tcp_in:receive((">I2"):unpack(tcp_in:receive(2)), nil) -- принимаем TCP пакет
         local id = (">I2"):unpack(packet:sub(1,2))                            -- читаем ID пакета
-        local client = clients[id]                                            -- находим получателя
-        if client then
-            udp_out:sendto(packet, client.ip, client.port) -- отправляем пакет получателю по UDP
-            clients[id] = nil                              -- очищаем ячейку
-            print(os.date("%c", os.time()) ,client.ip, client.port, "<", serialize(packet)) -- отображаем пакет в консоль
+                                  
+        if clients[id] then
+			for key, client in pairs(clients[id]) do
+				-- сравниваем query в запросе и ответе
+				if packet:find(client.packet:sub(13, -1), 13, true) == 13 then -- находим получателя
+					udp_out:sendto(packet, client.ip, client.port) -- отправляем пакет получателю по UDP
+					clients[id][key] = nil                         -- очищаем ячейку
+					-- отображаем пакет в консоль
+					print(os.date("%c", os.time()) ,client.ip, client.port, "<", serialize(packet)) 
+				end
+			end
+			if not next(clients[id]) then
+				clients[id] = nil
+			end
         end
     until false
 end
