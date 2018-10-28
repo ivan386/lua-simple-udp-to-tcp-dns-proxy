@@ -60,6 +60,7 @@ function tcp_to_udp_coroutine_function(tcp_in, udp_out, clients)
 					clients[id][key] = nil                         -- очищаем ячейку
 					-- отображаем пакет в консоль
 					print(os.date("%c", os.time()) ,client.ip, client.port, "<", serialize(packet)) 
+					break
 				end
 			end
 			if not next(clients[id]) then
