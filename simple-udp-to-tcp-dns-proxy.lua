@@ -134,6 +134,9 @@ end
 --]]--
 
 repeat
-    coroutine.resume(coroutine.create(main)) -- запускаем main
+    local ok, err = coroutine.resume(coroutine.create(main)) -- запускаем main
+	if not ok then
+		print(err)
+	end
     socket.sleep(1) -- перед рестартом ждём одну секунду
 until false
