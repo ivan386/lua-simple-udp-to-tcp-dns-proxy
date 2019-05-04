@@ -1,7 +1,6 @@
 
 local socket = require "socket" -- подключаем lua socket
 
-
 --[[--
 
 Напишем простенькую функцию которая позволит отправить дамп пакета в консоль. Хочется видеть что делает прокси.
@@ -13,6 +12,24 @@ function serialize(data)
     return "'"..data:gsub("[^a-z0-9-]", function(chr) return ("\\x%02X"):format(chr:byte()) end).."'"
 end
 
+--[[--
+
+Пишем функцию которая вытащит имя домена из пакета и приведёт в удобочитаемую форму.
+
+--]]--
+
+function read_domain(packet)
+	local pos = 14
+	local dlen = packet:byte(13) -- читаем размер первой части имени домена
+	local domain = {}
+	while (dlen > 0) do -- 0 - озачает конец имени домена
+		-- читаем часть имени домена
+		table.insert(domain, packet:sub(pos, pos + dlen - 1)) 
+		pos = pos + dlen + 1
+		dlen = packet:byte(pos - 1) -- читаем размер следующёй части имени домена
+	end
+	return table.concat(domain, ".")
+end
 
 --[[--
 
@@ -37,7 +54,7 @@ function udp_to_tcp_coroutine_function(udp_in, tcp_out, clients)
 				clients[id] = {}
 			end
 			table.insert(clients[id] ,{ip=err_ip, port=port, packet=packet}) -- записываем адрес отправителя
-            print(os.date("%c", os.time()) ,err_ip, port, ">", serialize(packet)) -- отображаем пакет в консоль
+            print(os.date("%c", os.time()) ,err_ip, port, ">", read_domain(packet), serialize(packet)) -- отображаем пакет в консоль
         end
     until false
 end
@@ -59,7 +76,7 @@ function tcp_to_udp_coroutine_function(tcp_in, udp_out, clients)
 					udp_out:sendto(packet, client.ip, client.port) -- отправляем пакет получателю по UDP
 					clients[id][key] = nil                         -- очищаем ячейку
 					-- отображаем пакет в консоль
-					print(os.date("%c", os.time()) ,client.ip, client.port, "<", serialize(packet)) 
+					print(os.date("%c", os.time()) ,client.ip, client.port, "<", read_domain(packet), serialize(packet)) 
 					break
 				end
 			end
